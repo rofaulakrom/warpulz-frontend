@@ -29,14 +29,29 @@ export default function Hero() {
         transition={{ duration: 1.5, delay: 0.8 }}
         className="absolute h-auto pointer-events-none z-5"
       >
-        <Image 
-          src="/images/bg-warpulz.png" 
-          alt="Warkop Pulang Illustration"
-          width={1920} 
-          height={1080} 
-          priority
-          className="object-contain" 
-        />
+        {/* Gambar ini HANYA MUNCUL DI HP, sembunyi di laptop */}
+        <div className="block md:hidden">
+          <Image 
+            src="/images/bg-warpulz-mobile.png" 
+            alt="Warkop Pulang Mobile BG"
+            width={1080} 
+            height={1920} 
+            priority
+            className="object-cover w-screen h-screen" 
+          />
+        </div>
+
+        {/* Gambar ini HANYA MUNCUL DI LAPTOP, sembunyi di HP */}
+        <div className="hidden md:block">
+          <Image 
+            src="/images/bg-warpulz.png" 
+            alt="Warkop Pulang Desktop BG"
+            width={1920} 
+            height={1080} 
+            priority
+            className="object-contain" 
+          />
+        </div>
       </motion.div>
 
       {/* --- LAYER 3: KONTEN TEKS --- */}
