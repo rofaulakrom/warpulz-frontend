@@ -849,17 +849,51 @@ const generateDailyImageReport = async () => {
 
           {activeTab === "analytics" && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10 w-full">
+              
+              {/* 1. BARCHART STOK (DIBUAT BISA DI-SWIPE DI HP) */}
               <div className="bg-white p-4 md:p-8 rounded-[20px] md:rounded-[30px] shadow-sm border border-[#e3d6c1] w-full overflow-hidden">
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6"><div><h3 className="text-lg md:text-xl font-black uppercase italic tracking-tighter text-[#2e231b]">Distribusi Stok {stockCategory !== "Semua" && <span className="text-[#8b523e] not-italic">- {stockCategory}</span>}</h3><p className="text-[10px] font-bold text-[#8a7a6c] uppercase tracking-widest mt-1">Jumlah unit tersedia per produk</p></div><div className="flex flex-wrap gap-2">{CATEGORIES.map(cat => (<button key={`bar-${cat}`} onClick={() => setStockCategory(cat)} className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-sm ${stockCategory === cat ? 'bg-kopi text-white' : 'bg-[#fcfaf5] text-[#8a7a6c] hover:bg-[#f4e9d8] hover:text-[#4a3320]'}`}>{cat}</button>))}</div></div>
-                <div className="h-64 md:h-96 w-full -ml-4 md:ml-0"><ResponsiveContainer width="100%" height="100%"><BarChart data={stockByProductData} margin={{ top: 10, right: 10, left: -20, bottom: 60 }}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e3d6c1" /><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontBold: 800, fill: '#6b523e' }} interval={0} angle={-45} textAnchor="end" /><YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontBold: 800, fill: '#6b523e' }} /><Tooltip cursor={{ fill: '#fcfaf5' }} contentStyle={{ borderRadius: '15px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} /><Bar dataKey="Stok" fill="#4a3320" radius={[6, 6, 0, 0]} /></BarChart></ResponsiveContainer></div>
+                
+                {/* Wrapper overflow-x-auto & min-w-[600px] */}
+                <div className="h-64 md:h-96 w-full overflow-x-auto">
+                  <div className="min-w-[600px] h-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={stockByProductData} margin={{ top: 10, right: 10, left: -20, bottom: 60 }}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e3d6c1" /><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontBold: 800, fill: '#6b523e' }} interval={0} angle={-45} textAnchor="end" /><YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontBold: 800, fill: '#6b523e' }} /><Tooltip cursor={{ fill: '#fcfaf5' }} contentStyle={{ borderRadius: '15px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} /><Bar dataKey="Stok" fill="#4a3320" radius={[6, 6, 0, 0]} /></BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
               </div>
-              <div className="bg-white p-4 md:p-8 rounded-[20px] md:rounded-[30px] shadow-sm border border-[#e3d6c1] flex flex-col items-center w-full"><div className="flex flex-col md:flex-row md:items-start justify-between w-full gap-4 mb-6"><div><h3 className="text-lg md:text-xl font-black uppercase italic tracking-tighter text-[#2e231b]">Top 6 Menu Terlaris {pieCategory !== "Semua" && <span className="text-[#8b523e] not-italic">- {pieCategory}</span>}</h3><p className="text-[10px] font-bold text-[#8a7a6c] uppercase tracking-widest mt-1">Berdasarkan total porsi yang terjual</p></div><div className="flex flex-wrap gap-2">{CATEGORIES.map(cat => (<button key={`pie-${cat}`} onClick={() => setPieCategory(cat)} className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-sm ${pieCategory === cat ? 'bg-kopi text-white' : 'bg-[#fcfaf5] text-[#8a7a6c] hover:bg-[#f4e9d8] hover:text-[#4a3320]'}`}>{cat}</button>))}</div></div><div className="h-72 md:h-96 w-full max-w-2xl flex justify-center"><ResponsiveContainer width="100%" height="100%"><PieChart><Tooltip formatter={(value: any) => [`${value} Porsi`, 'Terjual']} contentStyle={{ borderRadius: '15px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} /><Legend iconType="circle" layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', lineHeight: '20px', color: '#4a3320' }} /><Pie data={pieChartData} cx="45%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={5} dataKey="value" stroke="none">{pieChartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />))}</Pie></PieChart></ResponsiveContainer></div></div>
-              <div className="bg-white p-4 md:p-8 rounded-[20px] md:rounded-[30px] shadow-sm border border-[#e3d6c1] w-full overflow-hidden"><div className="mb-6"><h3 className="text-lg md:text-xl font-black uppercase italic tracking-tighter text-[#2e231b]">Arus Kas 7 Hari Terakhir</h3><p className="text-[10px] font-bold text-[#8a7a6c] uppercase tracking-widest mt-1">Laporan harian Warkop Pulang</p></div><div className="h-64 md:h-80 w-full -ml-4 md:ml-0"><ResponsiveContainer width="100%" height="100%"><LineChart data={revenueTrendData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e3d6c1" /><XAxis dataKey="tanggal" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontBold: 800, fill: '#6b523e' }} /><YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `Rp ${(val/1000)}k`} tick={{ fontSize: 9, fontBold: 800, fill: '#6b523e' }} /><Tooltip formatter={(value: any) => [`Rp ${Number(value).toLocaleString('id-ID')}`, '']} contentStyle={{ borderRadius: '15px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} /><Legend iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} /><Line type="monotone" dataKey="Pendapatan" stroke="#10b981" strokeWidth={3} dot={{ r: 3, strokeWidth: 2 }} activeDot={{ r: 5 }} /><Line type="monotone" dataKey="Pengeluaran" stroke="#d32f2f" strokeWidth={3} dot={{ r: 3, strokeWidth: 2 }} activeDot={{ r: 5 }} /></LineChart></ResponsiveContainer></div></div>
+
+              {/* 2. PIECHART TERLARIS (LEGENDA PINDAH BAWAH) */}
+              <div className="bg-white p-4 md:p-8 rounded-[20px] md:rounded-[30px] shadow-sm border border-[#e3d6c1] flex flex-col items-center w-full"><div className="flex flex-col md:flex-row md:items-start justify-between w-full gap-4 mb-6"><div><h3 className="text-lg md:text-xl font-black uppercase italic tracking-tighter text-[#2e231b]">Top 6 Menu Terlaris {pieCategory !== "Semua" && <span className="text-[#8b523e] not-italic">- {pieCategory}</span>}</h3><p className="text-[10px] font-bold text-[#8a7a6c] uppercase tracking-widest mt-1">Berdasarkan total porsi yang terjual</p></div><div className="flex flex-wrap gap-2">{CATEGORIES.map(cat => (<button key={`pie-${cat}`} onClick={() => setPieCategory(cat)} className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-sm ${pieCategory === cat ? 'bg-kopi text-white' : 'bg-[#fcfaf5] text-[#8a7a6c] hover:bg-[#f4e9d8] hover:text-[#4a3320]'}`}>{cat}</button>))}</div></div>
+                
+                {/* Perbaikan layout dan posisi cx, cy, radius */}
+                <div className="h-80 md:h-96 w-full max-w-2xl flex justify-center">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Tooltip formatter={(value: any) => [`${value} Porsi`, 'Terjual']} contentStyle={{ borderRadius: '15px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                      <Legend iconType="circle" layout="horizontal" verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', paddingTop: '20px', color: '#4a3320' }} />
+                      <Pie data={pieChartData} cx="50%" cy="45%" innerRadius="40%" outerRadius="70%" paddingAngle={5} dataKey="value" stroke="none">{pieChartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />))}</Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* 3. LINECHART ARUS KAS (DIBUAT BISA DI-SWIPE DI HP) */}
+              <div className="bg-white p-4 md:p-8 rounded-[20px] md:rounded-[30px] shadow-sm border border-[#e3d6c1] w-full overflow-hidden"><div className="mb-6"><h3 className="text-lg md:text-xl font-black uppercase italic tracking-tighter text-[#2e231b]">Arus Kas 7 Hari Terakhir</h3><p className="text-[10px] font-bold text-[#8a7a6c] uppercase tracking-widest mt-1">Laporan harian Warkop Pulang</p></div>
+                
+                {/* Wrapper overflow-x-auto & min-w-[500px] */}
+                <div className="h-64 md:h-80 w-full overflow-x-auto">
+                  <div className="min-w-[500px] h-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={revenueTrendData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e3d6c1" /><XAxis dataKey="tanggal" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontBold: 800, fill: '#6b523e' }} /><YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `Rp ${(val/1000)}k`} tick={{ fontSize: 9, fontBold: 800, fill: '#6b523e' }} /><Tooltip formatter={(value: any) => [`Rp ${Number(value).toLocaleString('id-ID')}`, '']} contentStyle={{ borderRadius: '15px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} /><Legend iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} /><Line type="monotone" dataKey="Pendapatan" stroke="#10b981" strokeWidth={3} dot={{ r: 3, strokeWidth: 2 }} activeDot={{ r: 5 }} /><Line type="monotone" dataKey="Pengeluaran" stroke="#d32f2f" strokeWidth={3} dot={{ r: 3, strokeWidth: 2 }} activeDot={{ r: 5 }} /></LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+
             </div>
           )}
-        </div>
-      </main>
-
       {/* MODAL FORM CRUD PRODUK (TEMA KOPI) */}
       <AnimatePresence>
         {isProductModalOpen && (
