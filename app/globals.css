@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+/* 1. DAFTARKAN WARNA BARU DI SINI */
+@theme {
+  --color-kopi: #4a3320;
+  --color-kopi-dark: #362415;
+  --color-kopi-light: #6b523e;
+  
+  --color-krem: #f4e9d8;
+  --color-krem-dark: #e3d6c1;
+}
+
+/* 2. (Opsional) UBAH WARNA DASAR HALAMAN */
+:root {
+  --background: #f4e9d8; /* Halaman otomatis berwarna krem */
+  --foreground: #4a3320; /* Teks bawaan otomatis berwarna kopi */
+}
