@@ -9,30 +9,6 @@ import {
   FileText // Ikon tambahan untuk tombol laporan
   ,
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   Filter,
   LogOut,
   Menu,
@@ -194,172 +170,172 @@ export default function AdminDashboard() {
     initFetch();
   }, [router, refreshData]);
 
-  // --- FUNGSI GENERATE LAPORAN IMG---
   // --- FUNGSI GENERATE LAPORAN GAMBAR (PENGGANTI PDF) ---
-const generateDailyImageReport = async () => {
-  // A. SIAPKAN DATA (Sama seperti PDF)
-  const todayStr = new Date().toISOString().split('T')[0];
-  const displayDate = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const generateDailyImageReport = async () => {
+    // A. SIAPKAN DATA (Sama seperti PDF)
+    const todayStr = new Date().toISOString().split('T')[0];
+    const displayDate = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-  // 1. Data Penjualan
-  const todayOrders = orders.filter(o => 
-    (o.status === "Paid" || o.status === "Completed") && o.created_at.startsWith(todayStr)
-  );
-  const productSales: Record<string, { category: string, qty: number, total: number }> = {};
-  todayOrders.forEach(o => {
-    o.product_name.split(' | ').forEach(itemStr => {
-      const match = itemStr.match(/(.*?)\s\((\d+)x\)/);
-      if (match) {
-        const name = match[1].trim();
-        const qty = parseInt(match[2]);
-        const pData = products.find(p => p.name === name);
-        const category = pData ? pData.category : "Lainnya";
-        const price = pData ? pData.price : 0;
-        if (!productSales[name]) {
-          productSales[name] = { category, qty: 0, total: 0 };
+    // 1. Data Penjualan
+    const todayOrders = orders.filter(o => 
+      (o.status === "Paid" || o.status === "Completed") && o.created_at.startsWith(todayStr)
+    );
+    const productSales: Record<string, { category: string, qty: number, total: number }> = {};
+    todayOrders.forEach(o => {
+      o.product_name.split(' | ').forEach(itemStr => {
+        const match = itemStr.match(/(.*?)\s\((\d+)x\)/);
+        if (match) {
+          const name = match[1].trim();
+          const qty = parseInt(match[2]);
+          const pData = products.find(p => p.name === name);
+          const category = pData ? pData.category : "Lainnya";
+          const price = pData ? pData.price : 0;
+          if (!productSales[name]) {
+            productSales[name] = { category, qty: 0, total: 0 };
+          }
+          productSales[name].qty += qty;
+          productSales[name].total += (price * qty);
         }
-        productSales[name].qty += qty;
-        productSales[name].total += (price * qty);
-      }
-    });
-  });
-
-  // 2. Data Pengeluaran
-  const todayExpenses = expenses.filter(e => e.expense_date === todayStr);
-
-  // 3. Ringkasan Keuangan
-  const revToday = todayOrders.reduce((sum, o) => sum + o.total_price, 0);
-  const expToday = todayExpenses.reduce((sum, e) => sum + e.amount, 0);
-  const net = revToday - expToday;
-
-  // B. BUAT TEMPLATE HTML (Akan Dipotret)
-  // Kita buat di memori, tidak tampil di layar
-  const reportContainer = document.createElement("div");
-  reportContainer.id = "WARPULZ_REPORT_IMAGE";
-  
-  // Style Container Utama (Latar Belakang & Padding)
-  Object.assign(reportContainer.style, {
-    padding: "50px",
-    width: "700px", // Lebar ideal untuk di HP
-    backgroundColor: "#fdfbf7", // Warna Krem khas Warpulz
-    fontFamily: "sans-serif",
-    color: "#2e231b",
-    position: "absolute",
-    left: "-9999px", // Sembunyikan dari layar
-    top: "0",
-  });
-
-  // Isi Konten Laporan
-  reportContainer.innerHTML = `
-    <div style="border-bottom: 2px solid #e3d6c1; padding-bottom: 15px; margin-bottom: 25px;">
-      <h1 style="margin: 0; color: #4a3320; font-style: italic; text-align: center;">WARPULZ REPORT</h1>
-      <p style="margin: 5px 0 0 0; font-weight: bold; color: #8a7a6c; text-align: center;">LAPORAN HARIAN WARKOP PULANG</p>
-      <p style="margin: 3px 0 0 0; font-size: 11px; color: #b9a58b; text-align: center;">Dicetak pada: ${displayDate}</p>
-    </div>
-
-    <div style="margin-bottom: 30px;">
-      <h3 style="color: #4a3320; font-weight: bold; margin-bottom: 10px;">A. RINCIAN PENJUALAN MENU</h3>
-      <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
-        <thead>
-          <tr style="background-color: #4a3320; color: white;">
-            <th style="padding: 8px; border: 1px solid #6b523e; text-align: left;">Nama Produk</th>
-            <th style="padding: 8px; border: 1px solid #6b523e; text-align: left;">Kategori</th>
-            <th style="padding: 8px; border: 1px solid #6b523e; text-align: center;">Banyak</th>
-            <th style="padding: 8px; border: 1px solid #6b523e; text-align: right;">Total Harga</th>
-          </tr>
-        </thead>
-        <tbody style="background-color: white;">
-          ${Object.entries(productSales).length > 0 ? Object.entries(productSales).map(([name, data]) => `
-            <tr>
-              <td style="padding: 8px; border: 1px solid #e3d6c1;">${name}</td>
-              <td style="padding: 8px; border: 1px solid #e3d6c1; color: #8b523e;">${data.category}</td>
-              <td style="padding: 8px; border: 1px solid #e3d6c1; text-align: center;">${data.qty}</td>
-              <td style="padding: 8px; border: 1px solid #e3d6c1; text-align: right; font-weight: bold;">Rp ${data.total.toLocaleString("id-ID")}</td>
-            </tr>
-          `).join('') : `
-            <tr><td colspan="4" style="padding: 20px; text-align: center; color: #8a7a6c; font-style: italic;">Tidak ada penjualan hari ini</td></tr>
-          `}
-        </tbody>
-      </table>
-    </div>
-
-    <div style="margin-bottom: 30px;">
-      <h3 style="color: #4a3320; font-weight: bold; margin-bottom: 10px;">B. RINCIAN PENGELUARAN TOKO</h3>
-      <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
-        <thead>
-          <tr style="background-color: #d32f2f; color: white;">
-            <th style="padding: 8px; border: 1px solid #b91c1c; text-align: left;">Deskripsi Pengeluaran</th>
-            <th style="padding: 8px; border: 1px solid #b91c1c; text-align: left;">Kategori</th>
-            <th style="padding: 8px; border: 1px solid #b91c1c; text-align: right;">Nominal</th>
-          </tr>
-        </thead>
-        <tbody style="background-color: white;">
-          ${todayExpenses.length > 0 ? todayExpenses.map(exp => `
-            <tr>
-              <td style="padding: 8px; border: 1px solid #e3d6c1;">${exp.description}</td>
-              <td style="padding: 8px; border: 1px solid #e3d6c1; color: #8a7a6c;">${exp.category}</td>
-              <td style="padding: 8px; border: 1px solid #e3d6c1; text-align: right; font-weight: bold; color: #d32f2f;">Rp ${exp.amount.toLocaleString("id-ID")}</td>
-            </tr>
-          `).join('') : `
-            <tr><td colspan="3" style="padding: 20px; text-align: center; color: #8a7a6c; font-style: italic;">Tidak ada pengeluaran hari ini</td></tr>
-          `}
-        </tbody>
-      </table>
-    </div>
-
-    <div style="background-color: white; padding: 20px; border-radius: 15px; border: 2px dashed #e3d6c1;">
-      <h3 style="margin-top: 0; font-size: 14px; color: #2e231b; font-weight: bold;">RINGKASAN KEUANGAN HARI INI:</h3>
-      
-      <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 11px;">
-        <span>Total Pemasukan (A):</span>
-        <span style="font-weight: bold;">Rp ${revToday.toLocaleString("id-ID")}</span>
-      </div>
-      
-      <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 11px; color: #d32f2f;">
-        <span>Total Pengeluaran (B):</span>
-        <span style="font-weight: bold;">Rp ${expToday.toLocaleString("id-ID")}</span>
-      </div>
-
-      <div style="display: flex; justify-content: space-between; margin-top: 15px; font-size: 14px; border-top: 1px solid #f4f1ea; padding-top: 10px;">
-        <span style="font-weight: bold;">LABA BERSIH (A - B):</span>
-        <span style="font-weight: bold; color: ${net >= 0 ? '#10b981' : '#d32f2f'};">Rp ${net.toLocaleString("id-ID")}</span>
-      </div>
-    </div>
-
-    <p style="margin-top: 30px; text-align: center; font-size: 9px; color: #b9a58b;">
-      Dicetak otomatis oleh Sistem Admin Warpulz • WARPULZ COMMAND CENTER
-    </p>
-  `;
-
-  // C. PROSES PEMOTRETAN (HTML to CANVAS)
-  // Masukkan elemen ke body sebentar, potret, lalu hapus lagi
-  document.body.appendChild(reportContainer);
-  
-  try {
-    const canvas = await html2canvas(reportContainer, {
-      scale: 2, // Meningkatkan resolusi gambar (lebih tajam)
-      backgroundColor: "#fdfbf7", // Pastikan latar belakang sama
-      useCORS: true, // Izinkan gambar/font dari luar (jika ada)
-      logging: false, // Matikan log di console
+      });
     });
 
-    const image = canvas.toDataURL("image/png");
+    // 2. Data Pengeluaran
+    const todayExpenses = expenses.filter(e => e.expense_date === todayStr);
+
+    // 3. Ringkasan Keuangan
+    const revToday = todayOrders.reduce((sum, o) => sum + o.total_price, 0);
+    const expToday = todayExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const net = revToday - expToday;
+
+    // B. BUAT TEMPLATE HTML (Akan Dipotret)
+    // Kita buat di memori, tidak tampil di layar
+    const reportContainer = document.createElement("div");
+    reportContainer.id = "WARPULZ_REPORT_IMAGE";
     
-    // Hapus elemen bayangan dari body
-    document.body.removeChild(reportContainer);
+    // Style Container Utama (Latar Belakang & Padding)
+    Object.assign(reportContainer.style, {
+      padding: "50px",
+      width: "700px", // Lebar ideal untuk di HP
+      backgroundColor: "#fdfbf7", // Warna Krem khas Warpulz
+      fontFamily: "sans-serif",
+      color: "#2e231b",
+      position: "absolute",
+      left: "-9999px", // Sembunyikan dari layar
+      top: "0",
+    });
 
-    // D. DOWNLOAD GAMBAR
-    const link = document.createElement("a");
-    link.href = image;
-    link.download = `Laporan_Warpulz_${todayStr}.png`;
-    link.click();
+    // Isi Konten Laporan
+    reportContainer.innerHTML = `
+      <div style="border-bottom: 2px solid #e3d6c1; padding-bottom: 15px; margin-bottom: 25px;">
+        <h1 style="margin: 0; color: #4a3320; font-style: italic; text-align: center;">WARPULZ REPORT</h1>
+        <p style="margin: 5px 0 0 0; font-weight: bold; color: #8a7a6c; text-align: center;">LAPORAN HARIAN WARKOP PULANG</p>
+        <p style="margin: 3px 0 0 0; font-size: 11px; color: #b9a58b; text-align: center;">Dicetak pada: ${displayDate}</p>
+      </div>
 
-  } catch (error) {
-    console.error("Gagal cetak gambar laporan:", error);
-    alert("Maaf, gagal menyimpan laporan sebagai gambar. Coba PDF dulu.");
-    document.body.removeChild(reportContainer); // Hapus jika gagal
-  }
-};
+      <div style="margin-bottom: 30px;">
+        <h3 style="color: #4a3320; font-weight: bold; margin-bottom: 10px;">A. RINCIAN PENJUALAN MENU</h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+          <thead>
+            <tr style="background-color: #4a3320; color: white;">
+              <th style="padding: 8px; border: 1px solid #6b523e; text-align: left;">Nama Produk</th>
+              <th style="padding: 8px; border: 1px solid #6b523e; text-align: left;">Kategori</th>
+              <th style="padding: 8px; border: 1px solid #6b523e; text-align: center;">Banyak</th>
+              <th style="padding: 8px; border: 1px solid #6b523e; text-align: right;">Total Harga</th>
+            </tr>
+          </thead>
+          <tbody style="background-color: white;">
+            ${Object.entries(productSales).length > 0 ? Object.entries(productSales).map(([name, data]) => `
+              <tr>
+                <td style="padding: 8px; border: 1px solid #e3d6c1;">${name}</td>
+                <td style="padding: 8px; border: 1px solid #e3d6c1; color: #8b523e;">${data.category}</td>
+                <td style="padding: 8px; border: 1px solid #e3d6c1; text-align: center;">${data.qty}</td>
+                <td style="padding: 8px; border: 1px solid #e3d6c1; text-align: right; font-weight: bold;">Rp ${data.total.toLocaleString("id-ID")}</td>
+              </tr>
+            `).join('') : `
+              <tr><td colspan="4" style="padding: 20px; text-align: center; color: #8a7a6c; font-style: italic;">Tidak ada penjualan hari ini</td></tr>
+            `}
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-bottom: 30px;">
+        <h3 style="color: #4a3320; font-weight: bold; margin-bottom: 10px;">B. RINCIAN PENGELUARAN TOKO</h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+          <thead>
+            <tr style="background-color: #d32f2f; color: white;">
+              <th style="padding: 8px; border: 1px solid #b91c1c; text-align: left;">Deskripsi Pengeluaran</th>
+              <th style="padding: 8px; border: 1px solid #b91c1c; text-align: left;">Kategori</th>
+              <th style="padding: 8px; border: 1px solid #b91c1c; text-align: right;">Nominal</th>
+            </tr>
+          </thead>
+          <tbody style="background-color: white;">
+            ${todayExpenses.length > 0 ? todayExpenses.map(exp => `
+              <tr>
+                <td style="padding: 8px; border: 1px solid #e3d6c1;">${exp.description}</td>
+                <td style="padding: 8px; border: 1px solid #e3d6c1; color: #8a7a6c;">${exp.category}</td>
+                <td style="padding: 8px; border: 1px solid #e3d6c1; text-align: right; font-weight: bold; color: #d32f2f;">Rp ${exp.amount.toLocaleString("id-ID")}</td>
+              </tr>
+            `).join('') : `
+              <tr><td colspan="3" style="padding: 20px; text-align: center; color: #8a7a6c; font-style: italic;">Tidak ada pengeluaran hari ini</td></tr>
+            `}
+          </tbody>
+        </table>
+      </div>
+
+      <div style="background-color: white; padding: 20px; border-radius: 15px; border: 2px dashed #e3d6c1;">
+        <h3 style="margin-top: 0; font-size: 14px; color: #2e231b; font-weight: bold;">RINGKASAN KEUANGAN HARI INI:</h3>
+        
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 11px;">
+          <span>Total Pemasukan (A):</span>
+          <span style="font-weight: bold;">Rp ${revToday.toLocaleString("id-ID")}</span>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 11px; color: #d32f2f;">
+          <span>Total Pengeluaran (B):</span>
+          <span style="font-weight: bold;">Rp ${expToday.toLocaleString("id-ID")}</span>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 15px; font-size: 14px; border-top: 1px solid #f4f1ea; padding-top: 10px;">
+          <span style="font-weight: bold;">LABA BERSIH (A - B):</span>
+          <span style="font-weight: bold; color: ${net >= 0 ? '#10b981' : '#d32f2f'};">Rp ${net.toLocaleString("id-ID")}</span>
+        </div>
+      </div>
+
+      <p style="margin-top: 30px; text-align: center; font-size: 9px; color: #b9a58b;">
+        Dicetak otomatis oleh Sistem Admin Warpulz • WARPULZ COMMAND CENTER
+      </p>
+    `;
+
+    // C. PROSES PEMOTRETAN (HTML to CANVAS)
+    // Masukkan elemen ke body sebentar, potret, lalu hapus lagi
+    document.body.appendChild(reportContainer);
+    
+    try {
+      const canvas = await html2canvas(reportContainer, {
+        scale: 2, // Meningkatkan resolusi gambar (lebih tajam)
+        backgroundColor: "#fdfbf7", // Pastikan latar belakang sama
+        useCORS: true, // Izinkan gambar/font dari luar (jika ada)
+        logging: false, // Matikan log di console
+      });
+
+      const image = canvas.toDataURL("image/png");
+      
+      // Hapus elemen bayangan dari body
+      document.body.removeChild(reportContainer);
+
+      // D. DOWNLOAD GAMBAR
+      const link = document.createElement("a");
+      link.href = image;
+      link.download = `Laporan_Warpulz_${todayStr}.png`;
+      link.click();
+
+    } catch (error) {
+      console.error("Gagal cetak gambar laporan:", error);
+      alert("Maaf, gagal menyimpan laporan sebagai gambar. Coba PDF dulu.");
+      document.body.removeChild(reportContainer); // Hapus jika gagal
+    }
+  };
+
   // --- FUNGSI GENERATE LAPORAN ---
   const generateDailyReport = () => {
     const doc = new jsPDF();
@@ -894,6 +870,9 @@ const generateDailyImageReport = async () => {
 
             </div>
           )}
+        </div>
+      </main>
+
       {/* MODAL FORM CRUD PRODUK (TEMA KOPI) */}
       <AnimatePresence>
         {isProductModalOpen && (
