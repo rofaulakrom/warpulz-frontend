@@ -14,6 +14,7 @@ const SECTORS = [
   { id: 'Ordinary', title: 'Ordinary ', icon: '🔥', desc: 'Cuma ada di warpulz, karena kamu lagi di warpulz 😎', img: '/assets/categories/special.jpg' },
   { id: 'Hot Drink', title: 'Hot Drinks ', icon: '☕', desc: 'Kalau lagi dingin gini, enaknya diangetin, kan😉?', img: '/assets/categories/hot.jpg' },
   { id: 'Cold Drink', title: 'Cold Drinks ', icon: '🥤', desc: 'Panas hati, panas pikiran, ademkan dengan... nu tiis tiis🧊', img: '/assets/categories/cold.jpg' },
+  { id: 'Add On', title: 'Add On ', icon: '🍳', desc: 'Kalau kurang, tambahkan add on hohohohoooo 🐣', img: '/assets/categories/add-on.jpg' },
 ];
 
 export interface CartItem {
