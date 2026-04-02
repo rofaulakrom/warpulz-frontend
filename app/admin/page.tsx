@@ -6,10 +6,7 @@ import {
   ChevronLeft, ChevronRight,
   DollarSign,
   Edit,
-  FileText // Ikon tambahan untuk tombol laporan
-  ,
-
-
+  FileText, // Ikon tambahan untuk tombol laporan
   Filter,
   LogOut,
   Menu,
@@ -103,6 +100,9 @@ export default function AdminDashboard() {
   
   const [stockCategory, setStockCategory] = useState("Semua"); 
   const [pieCategory, setPieCategory] = useState("Semua"); 
+
+  // --- STATE TANGGAL LAPORAN BARU ---
+  const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
   
   const ITEMS_PER_PAGE = 10;
 
@@ -173,9 +173,9 @@ export default function AdminDashboard() {
 
   // --- FUNGSI GENERATE LAPORAN GAMBAR (PENGGANTI PDF) ---
   const generateDailyImageReport = async () => {
-    // A. SIAPKAN DATA (Sama seperti PDF)
-    const todayStr = new Date().toISOString().split('T')[0];
-    const displayDate = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    // A. SIAPKAN DATA (Diambil dari state reportDate)
+    const todayStr = reportDate;
+    const displayDate = new Date(reportDate).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
     // 1. Data Penjualan
     const todayOrders = orders.filter(o => 
@@ -209,28 +209,25 @@ export default function AdminDashboard() {
     const net = revToday - expToday;
 
     // B. BUAT TEMPLATE HTML (Akan Dipotret)
-    // Kita buat di memori, tidak tampil di layar
     const reportContainer = document.createElement("div");
     reportContainer.id = "WARPULZ_REPORT_IMAGE";
     
-    // Style Container Utama (Latar Belakang & Padding)
     Object.assign(reportContainer.style, {
       padding: "50px",
-      width: "700px", // Lebar ideal untuk di HP
-      backgroundColor: "#fdfbf7", // Warna Krem khas Warpulz
+      width: "700px", 
+      backgroundColor: "#fdfbf7", 
       fontFamily: "sans-serif",
       color: "#2e231b",
       position: "absolute",
-      left: "-9999px", // Sembunyikan dari layar
+      left: "-9999px", 
       top: "0",
     });
 
-    // Isi Konten Laporan
     reportContainer.innerHTML = `
       <div style="border-bottom: 2px solid #e3d6c1; padding-bottom: 15px; margin-bottom: 25px;">
         <h1 style="margin: 0; color: #4a3320; font-style: italic; text-align: center;">WARPULZ REPORT</h1>
         <p style="margin: 5px 0 0 0; font-weight: bold; color: #8a7a6c; text-align: center;">LAPORAN HARIAN WARKOP PULANG</p>
-        <p style="margin: 3px 0 0 0; font-size: 11px; color: #b9a58b; text-align: center;">Dicetak pada: ${displayDate}</p>
+        <p style="margin: 3px 0 0 0; font-size: 11px; color: #b9a58b; text-align: center;">Dicetak untuk tanggal: ${displayDate}</p>
       </div>
 
       <div style="margin-bottom: 30px;">
@@ -284,7 +281,7 @@ export default function AdminDashboard() {
       </div>
 
       <div style="background-color: white; padding: 20px; border-radius: 15px; border: 2px dashed #e3d6c1;">
-        <h3 style="margin-top: 0; font-size: 14px; color: #2e231b; font-weight: bold;">RINGKASAN KEUANGAN HARI INI:</h3>
+        <h3 style="margin-top: 0; font-size: 14px; color: #2e231b; font-weight: bold;">RINGKASAN KEUANGAN TANGGAL TERPILIH:</h3>
         
         <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 11px;">
           <span>Total Pemasukan (A):</span>
@@ -307,24 +304,19 @@ export default function AdminDashboard() {
       </p>
     `;
 
-    // C. PROSES PEMOTRETAN (HTML to CANVAS)
-    // Masukkan elemen ke body sebentar, potret, lalu hapus lagi
     document.body.appendChild(reportContainer);
     
     try {
       const canvas = await html2canvas(reportContainer, {
-        scale: 2, // Meningkatkan resolusi gambar (lebih tajam)
-        backgroundColor: "#fdfbf7", // Pastikan latar belakang sama
-        useCORS: true, // Izinkan gambar/font dari luar (jika ada)
-        logging: false, // Matikan log di console
+        scale: 2, 
+        backgroundColor: "#fdfbf7", 
+        useCORS: true, 
+        logging: false, 
       });
 
       const image = canvas.toDataURL("image/png");
-      
-      // Hapus elemen bayangan dari body
       document.body.removeChild(reportContainer);
 
-      // D. DOWNLOAD GAMBAR
       const link = document.createElement("a");
       link.href = image;
       link.download = `Laporan_Warpulz_${todayStr}.png`;
@@ -333,22 +325,22 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error("Gagal cetak gambar laporan:", error);
       alert("Maaf, gagal menyimpan laporan sebagai gambar. Coba PDF dulu.");
-      document.body.removeChild(reportContainer); // Hapus jika gagal
+      document.body.removeChild(reportContainer); 
     }
   };
 
-  // --- FUNGSI GENERATE LAPORAN ---
+  // --- FUNGSI GENERATE LAPORAN PDF ---
   const generateDailyReport = () => {
     const doc = new jsPDF();
-    const todayStr = new Date().toISOString().split('T')[0];
-    const displayDate = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const todayStr = reportDate;
+    const displayDate = new Date(reportDate).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
     doc.setFontSize(18);
-    doc.setTextColor(74, 51, 32); // Warna Kopi
+    doc.setTextColor(74, 51, 32); 
     doc.text("LAPORAN HARIAN WARKOP PULANG", 14, 20);
     doc.setFontSize(11);
     doc.setTextColor(138, 122, 108);
-    doc.text(`Dicetak pada: ${displayDate}`, 14, 28);
+    doc.text(`Dicetak untuk tanggal: ${displayDate}`, 14, 28);
 
     // 1. DATA PENJUALAN PRODUK
     const todayOrders = orders.filter(o => 
@@ -415,13 +407,13 @@ export default function AdminDashboard() {
     autoTable(doc, {
       startY: finalYProducts + 4,
       head: [['Deskripsi Pengeluaran', 'Kategori', 'Nominal']],
-      body: expenseRows.length > 0 ? expenseRows : [['Tidak ada pengeluaran hari ini', '-', '-']],
+      body: expenseRows.length > 0 ? expenseRows : [['Tidak ada pengeluaran untuk tanggal ini', '-', '-']],
       theme: 'grid',
       headStyles: { fillColor: [211, 47, 47], textColor: [255, 255, 255] }, 
       styles: { fontSize: 9 }
     });
 
-    // 3. RINGKASAN AKHIR (MODIFIKASI FONT BESAR & BOLD)
+    // 3. RINGKASAN AKHIR
     const finalYExpenses = (doc as any).lastAutoTable.finalY + 15;
     const revToday = todayOrders.reduce((sum, o) => sum + o.total_price, 0);
     const expToday = todayExpenses.reduce((sum, e) => sum + e.amount, 0);
@@ -430,21 +422,20 @@ export default function AdminDashboard() {
     doc.setFontSize(13);
     doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "bold");
-    doc.text("RINGKASAN KEUANGAN HARI INI:", 14, finalYExpenses);
+    doc.text("RINGKASAN KEUANGAN TANGGAL TERPILIH:", 14, finalYExpenses);
     
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.text(`Total Pemasukan (A):`, 14, finalYExpenses + 10);
     doc.setFont("helvetica", "bold");
-    doc.text(`Rp ${revToday.toLocaleString("id-ID")}`, 65, finalYExpenses + 10); // Angka dibuat Bold
+    doc.text(`Rp ${revToday.toLocaleString("id-ID")}`, 65, finalYExpenses + 10); 
     
     doc.setFont("helvetica");
     doc.text(`Total Pengeluaran (B):`, 14, finalYExpenses + 18);
     doc.setFont("helvetica");
-    doc.setTextColor(211, 47, 47); // Warna Merah untuk angka pengeluaran
+    doc.setTextColor(211, 47, 47); 
     doc.text(`Rp ${expToday.toLocaleString("id-ID")}`, 65, finalYExpenses + 18);
     
-    // GARIS PEMISAH SEDERHANA
     doc.setDrawColor(200, 200, 200);
     doc.line(14, finalYExpenses + 22, 100, finalYExpenses + 22);
 
@@ -548,8 +539,7 @@ export default function AdminDashboard() {
 
   const handleSaveExpense = async (e: React.FormEvent) => {
     e.preventDefault();
-    const url = editingExpense ? `${process.env.NEXT_PUBLIC_API_URL}/expenses/${editingExpense.id}` : `${process.env.NEXT_PUBLIC_API_URL}/expenses`
-    ;
+    const url = editingExpense ? `${process.env.NEXT_PUBLIC_API_URL}/expenses/${editingExpense.id}` : `${process.env.NEXT_PUBLIC_API_URL}/expenses`;
     const method = editingExpense ? "PUT" : "POST";
 
     try {
@@ -600,11 +590,10 @@ export default function AdminDashboard() {
     setIsExpenseModalOpen(true);
   };
 
-  // --- CALCULATIONS FOR SUMMARY ---
-  const today = new Date().toISOString().split('T')[0];
+  // --- CALCULATIONS FOR SUMMARY (Sekarang terhubung dengan reportDate) ---
   const totalRevenueAllTime = orders.filter(o => o.status === "Paid" || o.status === "Completed").reduce((sum, o) => sum + o.total_price, 0);
-  const totalRevenueToday = orders.filter(o => (o.status === "Paid" || o.status === "Completed") && o.created_at.startsWith(today)).reduce((sum, o) => sum + o.total_price, 0);
-  const totalOrdersToday = orders.filter(o => o.created_at.startsWith(today)).length;
+  const totalRevenueToday = orders.filter(o => (o.status === "Paid" || o.status === "Completed") && o.created_at.startsWith(reportDate)).reduce((sum, o) => sum + o.total_price, 0);
+  const totalOrdersToday = orders.filter(o => o.created_at.startsWith(reportDate)).length;
   const totalExpenseAllTime = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const netProfit = totalRevenueAllTime - totalExpenseAllTime;
   
@@ -719,38 +708,61 @@ export default function AdminDashboard() {
           {activeTab === "orders" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
               
-              {/* HEADER ACTIONS + TOMBOL GENERATE LAPORAN */}
+              {/* HEADER ACTIONS + TOMBOL GENERATE LAPORAN & DATE PICKER */}
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <h3 className="font-black text-kopi uppercase italic tracking-tighter">Statistik & Transaksi</h3>
-                <div className="flex gap-2">
-  <button 
-    onClick={generateDailyReport}
-    className="bg-kopi text-white px-4 py-3 rounded-2xl font-bold text-xs flex items-center gap-2"
-  >
-    <FileText size={16} /> PDF
-  </button>
+                <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
+                  
+                  {/* INPUT TANGGAL BARU */}
+                  <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-2xl border border-[#e3d6c1] shadow-sm">
+                    <span className="text-[10px] font-bold text-[#8a7a6c] uppercase tracking-widest">Tgl Laporan:</span>
+                    <input 
+                      type="date" 
+                      value={reportDate}
+                      onChange={(e) => setReportDate(e.target.value)}
+                      className="text-xs font-black text-[#2e231b] outline-none bg-transparent cursor-pointer"
+                    />
+                  </div>
 
-  <button 
-    onClick={generateDailyImageReport}
-    className="bg-amber-600 text-white px-4 py-3 rounded-2xl font-bold text-xs flex items-center gap-2"
-  >
-    <span>📸</span> Simpan Gambar
-  </button>
-</div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={generateDailyReport}
+                      className="bg-kopi text-white px-4 py-3 rounded-2xl font-bold text-xs flex items-center gap-2"
+                    >
+                      <FileText size={16} /> PDF
+                    </button>
+
+                    <button 
+                      onClick={generateDailyImageReport}
+                      className="bg-amber-600 text-white px-4 py-3 rounded-2xl font-bold text-xs flex items-center gap-2"
+                    >
+                      <span>📸</span> Simpan Gambar
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                 <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-krem-dark flex items-center gap-4">
                   <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-[#fcfaf5] flex items-center justify-center text-[#d9a014] shrink-0"><TrendingUp size={20} /></div>
-                  <div className="min-w-0"><p className="text-[10px] font-black uppercase tracking-widest text-[#8a7a6c] truncate">Pendapatan Hari Ini</p><h3 className="text-xl md:text-2xl font-black text-[#2e231b] truncate">Rp {totalRevenueToday.toLocaleString("id-ID")}</h3></div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#8a7a6c] truncate">Pendapatan Harian (Tgl Terpilih)</p>
+                    <h3 className="text-xl md:text-2xl font-black text-[#2e231b] truncate">Rp {totalRevenueToday.toLocaleString("id-ID")}</h3>
+                  </div>
                 </div>
                 <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-[#e3d6c1] flex items-center gap-4">
                   <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-[#f0f9f4] flex items-center justify-center text-[#10b981] shrink-0"><DollarSign size={20} /></div>
-                  <div className="min-w-0"><p className="text-[10px] font-black uppercase tracking-widest text-[#8a7a6c] truncate">Total Penjualan</p><h3 className="text-xl md:text-2xl font-black text-[#2e231b] truncate">Rp {totalRevenueAllTime.toLocaleString("id-ID")}</h3></div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#8a7a6c] truncate">Total Penjualan Semua Waktu</p>
+                    <h3 className="text-xl md:text-2xl font-black text-[#2e231b] truncate">Rp {totalRevenueAllTime.toLocaleString("id-ID")}</h3>
+                  </div>
                 </div>
                 <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-krem-dark flex items-center gap-4">
                   <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-[#fffcf0] flex items-center justify-center text-[#f59e0b] shrink-0"><ShoppingCart size={20} /></div>
-                  <div className="min-w-0"><p className="text-[10px] font-black uppercase tracking-widest text-[#8a7a6c] truncate">Transaksi Hari Ini</p><h3 className="text-xl md:text-2xl font-black text-[#2e231b] truncate">{totalOrdersToday} Pesanan</h3></div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#8a7a6c] truncate">Transaksi Harian (Tgl Terpilih)</p>
+                    <h3 className="text-xl md:text-2xl font-black text-[#2e231b] truncate">{totalOrdersToday} Pesanan</h3>
+                  </div>
                 </div>
               </div>
 
