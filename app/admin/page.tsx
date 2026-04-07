@@ -101,8 +101,16 @@ export default function AdminDashboard() {
   const [stockCategory, setStockCategory] = useState("Semua"); 
   const [pieCategory, setPieCategory] = useState("Semua"); 
 
-  // --- STATE TANGGAL LAPORAN BARU ---
+  // --- STATE TANGGAL LAPORAN HARIAN ---
   const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // --- STATE TANGGAL PEMBUKUAN BERKALA (BARU) ---
+  const [bookStartDate, setBookStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7); // Default 1 minggu terakhir
+    return d.toISOString().split('T')[0];
+  });
+  const [bookEndDate, setBookEndDate] = useState(new Date().toISOString().split('T')[0]);
   
   const ITEMS_PER_PAGE = 10;
 
@@ -171,13 +179,163 @@ export default function AdminDashboard() {
     initFetch();
   }, [router, refreshData]);
 
-  // --- FUNGSI GENERATE LAPORAN GAMBAR (PENGGANTI PDF) ---
+  // --- FUNGSI GENERATE PEMBUKUAN BERKALA (BARU) ---
+  const generatePembukuanImage = async () => {
+    if (bookStartDate > bookEndDate) {
+      alert("Tanggal mulai tidak boleh lebih besar dari tanggal akhir!");
+      return;
+    }
+
+    // 1. Filter Pesanan berdasarkan range tanggal
+    const filteredOrders = orders.filter(o => {
+      const d = o.created_at.split('T')[0];
+      return d >= bookStartDate && d <= bookEndDate && (o.status === "Paid" || o.status === "Completed");
+    });
+
+    // 2. Filter Pengeluaran berdasarkan range tanggal
+    const filteredExpenses = expenses.filter(e => {
+      const d = e.expense_date;
+      return d >= bookStartDate && d <= bookEndDate;
+    });
+
+    // 3. Kelompokkan Pemasukan per Tanggal
+    const incomeByDate: Record<string, number> = {};
+    filteredOrders.forEach(o => {
+      const d = o.created_at.split('T')[0];
+      incomeByDate[d] = (incomeByDate[d] || 0) + o.total_price;
+    });
+    const incomeDates = Object.keys(incomeByDate).sort();
+
+    // 4. Urutkan Pengeluaran
+    filteredExpenses.sort((a,b) => a.expense_date.localeCompare(b.expense_date));
+
+    // 5. Hitung Total Selisih
+    const totalIncome = filteredOrders.reduce((sum, o) => sum + o.total_price, 0);
+    const totalExpense = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const selisih = totalIncome - totalExpense;
+
+    // 6. Buat Template HTML
+    const reportContainer = document.createElement("div");
+    reportContainer.id = "WARPULZ_PEMBUKUAN_IMAGE";
+    
+    Object.assign(reportContainer.style, {
+      padding: "50px",
+      width: "800px", 
+      backgroundColor: "#fdfbf7", 
+      fontFamily: "sans-serif",
+      color: "#2e231b",
+      position: "absolute",
+      left: "-9999px", 
+      top: "0",
+    });
+
+    reportContainer.innerHTML = `
+      <div style="border-bottom: 2px solid #e3d6c1; padding-bottom: 15px; margin-bottom: 25px;">
+        <h1 style="margin: 0; color: #4a3320; font-style: italic; text-align: center;">BUKU KAS WARPULZ</h1>
+        <p style="margin: 5px 0 0 0; font-weight: bold; color: #8a7a6c; text-align: center;">LAPORAN PEMASUKAN & PENGELUARAN BERKALA</p>
+        <p style="margin: 3px 0 0 0; font-size: 11px; color: #b9a58b; text-align: center;">Periode: ${new Date(bookStartDate).toLocaleDateString('id-ID')} s/d ${new Date(bookEndDate).toLocaleDateString('id-ID')}</p>
+      </div>
+
+      <div style="margin-bottom: 30px;">
+        <h3 style="color: #4a3320; font-weight: bold; margin-bottom: 10px;">A. RINCIAN PEMASUKAN PER HARI</h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+          <thead>
+            <tr style="background-color: #4a3320; color: white;">
+              <th style="padding: 8px; border: 1px solid #6b523e; text-align: left;">Tanggal</th>
+              <th style="padding: 8px; border: 1px solid #6b523e; text-align: right;">Total Pemasukan</th>
+            </tr>
+          </thead>
+          <tbody style="background-color: white;">
+            ${incomeDates.length > 0 ? incomeDates.map(date => `
+              <tr>
+                <td style="padding: 8px; border: 1px solid #e3d6c1; font-weight: bold;">${new Date(date).toLocaleDateString('id-ID')}</td>
+                <td style="padding: 8px; border: 1px solid #e3d6c1; text-align: right; font-weight: bold; color: #10b981;">Rp ${incomeByDate[date].toLocaleString("id-ID")}</td>
+              </tr>
+            `).join('') : `
+              <tr><td colspan="2" style="padding: 20px; text-align: center; color: #8a7a6c; font-style: italic;">Tidak ada data pemasukan pada periode ini</td></tr>
+            `}
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-bottom: 30px;">
+        <h3 style="color: #4a3320; font-weight: bold; margin-bottom: 10px;">B. RINCIAN PENGELUARAN</h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+          <thead>
+            <tr style="background-color: #d32f2f; color: white;">
+              <th style="padding: 8px; border: 1px solid #b91c1c; text-align: left;">Tanggal</th>
+              <th style="padding: 8px; border: 1px solid #b91c1c; text-align: left;">Keterangan / Deskripsi</th>
+              <th style="padding: 8px; border: 1px solid #b91c1c; text-align: right;">Nominal</th>
+            </tr>
+          </thead>
+          <tbody style="background-color: white;">
+            ${filteredExpenses.length > 0 ? filteredExpenses.map(exp => `
+              <tr>
+                <td style="padding: 8px; border: 1px solid #e3d6c1; font-weight: bold;">${new Date(exp.expense_date).toLocaleDateString('id-ID')}</td>
+                <td style="padding: 8px; border: 1px solid #e3d6c1; color: #8a7a6c;">${exp.description} <span style="font-size:9px; background:#f4f1ea; padding:2px 6px; border-radius:10px; margin-left:5px;">${exp.category}</span></td>
+                <td style="padding: 8px; border: 1px solid #e3d6c1; text-align: right; font-weight: bold; color: #d32f2f;">Rp ${exp.amount.toLocaleString("id-ID")}</td>
+              </tr>
+            `).join('') : `
+              <tr><td colspan="3" style="padding: 20px; text-align: center; color: #8a7a6c; font-style: italic;">Tidak ada data pengeluaran pada periode ini</td></tr>
+            `}
+          </tbody>
+        </table>
+      </div>
+
+      <div style="background-color: white; padding: 25px; border-radius: 15px; border: 2px dashed #4a3320;">
+        <h3 style="margin-top: 0; font-size: 16px; color: #2e231b; font-weight: bold; text-align: center; border-bottom: 1px solid #f4f1ea; padding-bottom: 10px;">REKAPITULASI BUKU KAS</h3>
+        
+        <div style="display: flex; justify-content: space-between; margin-top: 15px; font-size: 13px;">
+          <span>Total Pemasukan:</span>
+          <span style="font-weight: bold; color: #10b981;">Rp ${totalIncome.toLocaleString("id-ID")}</span>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; margin-top: 12px; font-size: 13px;">
+          <span>Total Pengeluaran:</span>
+          <span style="font-weight: bold; color: #d32f2f;">Rp ${totalExpense.toLocaleString("id-ID")}</span>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 20px; font-size: 18px; border-top: 2px solid #e3d6c1; padding-top: 15px;">
+          <span style="font-weight: black;">SELISIH (LABA / RUGI):</span>
+          <span style="font-weight: black; color: ${selisih >= 0 ? '#10b981' : '#d32f2f'};">Rp ${selisih.toLocaleString("id-ID")}</span>
+        </div>
+      </div>
+
+      <p style="margin-top: 30px; text-align: center; font-size: 9px; color: #b9a58b;">
+        Dicetak otomatis oleh Sistem Admin Warpulz • WARPULZ COMMAND CENTER
+      </p>
+    `;
+
+    document.body.appendChild(reportContainer);
+    
+    try {
+      const canvas = await html2canvas(reportContainer, {
+        scale: 2, 
+        backgroundColor: "#fdfbf7", 
+        useCORS: true, 
+        logging: false, 
+      });
+
+      const image = canvas.toDataURL("image/png");
+      document.body.removeChild(reportContainer);
+
+      const link = document.createElement("a");
+      link.href = image;
+      link.download = `Pembukuan_Warpulz_${bookStartDate}_sd_${bookEndDate}.png`;
+      link.click();
+
+    } catch (error) {
+      console.error("Gagal cetak gambar pembukuan:", error);
+      alert("Maaf, gagal menyimpan buku kas sebagai gambar.");
+      document.body.removeChild(reportContainer); 
+    }
+  };
+
+  // --- FUNGSI GENERATE LAPORAN GAMBAR (HARIAN) ---
   const generateDailyImageReport = async () => {
-    // A. SIAPKAN DATA (Diambil dari state reportDate)
     const todayStr = reportDate;
     const displayDate = new Date(reportDate).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-    // 1. Data Penjualan
     const todayOrders = orders.filter(o => 
       (o.status === "Paid" || o.status === "Completed") && o.created_at.startsWith(todayStr)
     );
@@ -200,15 +358,12 @@ export default function AdminDashboard() {
       });
     });
 
-    // 2. Data Pengeluaran
     const todayExpenses = expenses.filter(e => e.expense_date === todayStr);
 
-    // 3. Ringkasan Keuangan
     const revToday = todayOrders.reduce((sum, o) => sum + o.total_price, 0);
     const expToday = todayExpenses.reduce((sum, e) => sum + e.amount, 0);
     const net = revToday - expToday;
 
-    // B. BUAT TEMPLATE HTML (Akan Dipotret)
     const reportContainer = document.createElement("div");
     reportContainer.id = "WARPULZ_REPORT_IMAGE";
     
@@ -713,9 +868,9 @@ export default function AdminDashboard() {
                 <h3 className="font-black text-kopi uppercase italic tracking-tighter">Statistik & Transaksi</h3>
                 <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
                   
-                  {/* INPUT TANGGAL BARU */}
+                  {/* INPUT TANGGAL BARU (LAPORAN HARIAN) */}
                   <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-2xl border border-[#e3d6c1] shadow-sm">
-                    <span className="text-[10px] font-bold text-[#8a7a6c] uppercase tracking-widest">Tgl Laporan:</span>
+                    <span className="text-[10px] font-bold text-[#8a7a6c] uppercase tracking-widest">Tgl Harian:</span>
                     <input 
                       type="date" 
                       value={reportDate}
@@ -794,6 +949,27 @@ export default function AdminDashboard() {
                   </table>
                 </div>
                 <div className="p-4 border-t border-[#f4f1ea] flex flex-col md:flex-row items-center justify-between gap-4 bg-[#fcfaf5]/50"><span className="text-xs font-bold text-[#8a7a6c]">Halaman {orderPage} dari {totalOrderPages || 1}</span><div className="flex gap-2"><button onClick={() => setOrderPage(p => Math.max(1, p - 1))} disabled={orderPage === 1} className="p-2 bg-white rounded-lg border border-[#e3d6c1] shadow-sm disabled:opacity-50 text-[#4a3320]"><ChevronLeft size={16} /></button><button onClick={() => setOrderPage(p => Math.min(totalOrderPages, p + 1))} disabled={orderPage === totalOrderPages || totalOrderPages === 0} className="p-2 bg-white rounded-lg border border-[#e3d6c1] shadow-sm disabled:opacity-50 text-[#4a3320]"><ChevronRight size={16} /></button></div></div>
+              </div>
+
+              {/* FITUR PEMBUKUAN (BARU) */}
+              <div className="mt-8 bg-white p-6 md:p-8 rounded-[20px] md:rounded-[30px] shadow-sm border border-[#e3d6c1]">
+                  <div className="mb-6">
+                    <h3 className="font-black text-lg md:text-xl text-[#2e231b] uppercase italic tracking-tighter">Buku Kas Berkala</h3>
+                    <p className="text-[10px] font-bold text-[#8a7a6c] uppercase tracking-widest mt-1">Cetak laporan pemasukan, pengeluaran, dan laba kotor</p>
+                  </div>
+                  <div className="flex flex-col md:flex-row items-end gap-4">
+                      <div className="flex flex-col gap-2 w-full md:w-1/3">
+                          <label className="text-[10px] font-black text-[#8a7a6c] uppercase tracking-widest ml-1">Dari Tanggal</label>
+                          <input type="date" value={bookStartDate} onChange={e => setBookStartDate(e.target.value)} className="w-full bg-[#fcfaf5] border border-[#e3d6c1] focus:border-[#4a3320] rounded-2xl p-3 md:p-4 text-sm font-bold text-[#2e231b] outline-none transition-colors cursor-pointer" />
+                      </div>
+                      <div className="flex flex-col gap-2 w-full md:w-1/3">
+                          <label className="text-[10px] font-black text-[#8a7a6c] uppercase tracking-widest ml-1">Sampai Tanggal</label>
+                          <input type="date" value={bookEndDate} onChange={e => setBookEndDate(e.target.value)} className="w-full bg-[#fcfaf5] border border-[#e3d6c1] focus:border-[#4a3320] rounded-2xl p-3 md:p-4 text-sm font-bold text-[#2e231b] outline-none transition-colors cursor-pointer" />
+                      </div>
+                      <button onClick={generatePembukuanImage} className="w-full md:w-1/3 bg-kopi text-white px-6 py-4 md:py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-kopi-dark transition-all shadow-lg shadow-[#4a3320]/20">
+                          <span>📑</span> Cetak Pembukuan (PNG)
+                      </button>
+                  </div>
               </div>
             </div>
           )}
