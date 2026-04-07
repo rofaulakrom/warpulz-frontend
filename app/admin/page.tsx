@@ -80,6 +80,17 @@ const EXPENSE_CATEGORIES = ["Bahan Baku", "Operasional", "Gaji Karyawan", "Lain-
 // WARNA GRAFIK DISESUAIKAN TEMA KOPI (Coklat, Amber, Gold, Red Aksen)
 const PIE_COLORS = ['#4a3320', '#d9a014', '#8b523e', '#d32f2f', '#6b523e', '#b9a58b'];
 
+// --- FORMATTER TANGGAL (HARI, DD/MM/YYYY) ---
+const formatTanggal = (dateInput: string | Date) => {
+  const d = new Date(dateInput);
+  const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  const dayName = days[d.getDay()];
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dayName}, ${dd}/${mm}/${yyyy}`;
+};
+
 export default function AdminDashboard() {
   const router = useRouter();
   
@@ -104,7 +115,7 @@ export default function AdminDashboard() {
   // --- STATE TANGGAL LAPORAN HARIAN ---
   const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
 
-  // --- STATE TANGGAL PEMBUKUAN BERKALA (BARU) ---
+  // --- STATE TANGGAL PEMBUKUAN BERKALA ---
   const [bookStartDate, setBookStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 7); // Default 1 minggu terakhir
@@ -179,7 +190,7 @@ export default function AdminDashboard() {
     initFetch();
   }, [router, refreshData]);
 
-  // --- FUNGSI GENERATE PEMBUKUAN BERKALA (BARU) ---
+  // --- FUNGSI GENERATE PEMBUKUAN BERKALA ---
   const generatePembukuanImage = async () => {
     if (bookStartDate > bookEndDate) {
       alert("Tanggal mulai tidak boleh lebih besar dari tanggal akhir!");
@@ -233,7 +244,7 @@ export default function AdminDashboard() {
       <div style="border-bottom: 2px solid #e3d6c1; padding-bottom: 15px; margin-bottom: 25px;">
         <h1 style="margin: 0; color: #4a3320; font-style: italic; text-align: center;">BUKU KAS WARPULZ</h1>
         <p style="margin: 5px 0 0 0; font-weight: bold; color: #8a7a6c; text-align: center;">LAPORAN PEMASUKAN & PENGELUARAN BERKALA</p>
-        <p style="margin: 3px 0 0 0; font-size: 11px; color: #b9a58b; text-align: center;">Periode: ${new Date(bookStartDate).toLocaleDateString('id-ID')} s/d ${new Date(bookEndDate).toLocaleDateString('id-ID')}</p>
+        <p style="margin: 3px 0 0 0; font-size: 11px; color: #b9a58b; text-align: center;">Periode: ${formatTanggal(bookStartDate)} s/d ${formatTanggal(bookEndDate)}</p>
       </div>
 
       <div style="margin-bottom: 30px;">
@@ -248,7 +259,7 @@ export default function AdminDashboard() {
           <tbody style="background-color: white;">
             ${incomeDates.length > 0 ? incomeDates.map(date => `
               <tr>
-                <td style="padding: 8px; border: 1px solid #e3d6c1; font-weight: bold;">${new Date(date).toLocaleDateString('id-ID')}</td>
+                <td style="padding: 8px; border: 1px solid #e3d6c1; font-weight: bold;">${formatTanggal(date)}</td>
                 <td style="padding: 8px; border: 1px solid #e3d6c1; text-align: right; font-weight: bold; color: #10b981;">Rp ${incomeByDate[date].toLocaleString("id-ID")}</td>
               </tr>
             `).join('') : `
@@ -271,7 +282,7 @@ export default function AdminDashboard() {
           <tbody style="background-color: white;">
             ${filteredExpenses.length > 0 ? filteredExpenses.map(exp => `
               <tr>
-                <td style="padding: 8px; border: 1px solid #e3d6c1; font-weight: bold;">${new Date(exp.expense_date).toLocaleDateString('id-ID')}</td>
+                <td style="padding: 8px; border: 1px solid #e3d6c1; font-weight: bold;">${formatTanggal(exp.expense_date)}</td>
                 <td style="padding: 8px; border: 1px solid #e3d6c1; color: #8a7a6c;">${exp.description} <span style="font-size:9px; background:#f4f1ea; padding:2px 6px; border-radius:10px; margin-left:5px;">${exp.category}</span></td>
                 <td style="padding: 8px; border: 1px solid #e3d6c1; text-align: right; font-weight: bold; color: #d32f2f;">Rp ${exp.amount.toLocaleString("id-ID")}</td>
               </tr>
@@ -334,7 +345,7 @@ export default function AdminDashboard() {
   // --- FUNGSI GENERATE LAPORAN GAMBAR (HARIAN) ---
   const generateDailyImageReport = async () => {
     const todayStr = reportDate;
-    const displayDate = new Date(reportDate).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const displayDate = formatTanggal(reportDate);
 
     const todayOrders = orders.filter(o => 
       (o.status === "Paid" || o.status === "Completed") && o.created_at.startsWith(todayStr)
@@ -488,7 +499,7 @@ export default function AdminDashboard() {
   const generateDailyReport = () => {
     const doc = new jsPDF();
     const todayStr = reportDate;
-    const displayDate = new Date(reportDate).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const displayDate = formatTanggal(reportDate);
 
     doc.setFontSize(18);
     doc.setTextColor(74, 51, 32); 
@@ -856,7 +867,7 @@ export default function AdminDashboard() {
               {activeTab === 'analytics' && "Visualisasi Data"}
             </h2>
           </div>
-          <div className="text-[10px] md:text-xs font-bold text-[#8a7a6c] uppercase tracking-widest text-right">{new Date().toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</div>
+          <div className="text-[10px] md:text-xs font-bold text-[#8a7a6c] uppercase tracking-widest text-right">{formatTanggal(new Date().toISOString())}</div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 md:p-8 w-full">
@@ -937,7 +948,10 @@ export default function AdminDashboard() {
                     <tbody className="divide-y divide-[#f4f1ea]">
                       {paginatedOrders.map((ord) => (
                         <tr key={ord.id} className="hover:bg-[#fcfaf5]/50 transition-colors">
-                          <td className="py-4 px-6"><div className="font-bold text-[#2e231b] text-xs">{ord.invoice_number}</div><div className="text-[10px] text-[#8a7a6c] mt-1">{new Date(ord.created_at).toLocaleString("id-ID")}</div></td>
+                          <td className="py-4 px-6">
+                            <div className="font-bold text-[#2e231b] text-xs">{ord.invoice_number}</div>
+                            <div className="text-[10px] text-[#8a7a6c] mt-1">{formatTanggal(ord.created_at)} <span className="font-medium text-[9px] opacity-70">({new Date(ord.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})})</span></div>
+                          </td>
                           <td className="py-4 px-6"><div className="font-bold text-sm text-[#2e231b]">{ord.customer_name}</div><div className="text-[10px] font-black text-kopi uppercase mt-1">{ord.order_type} • Meja {ord.table_number}</div></td>
                           <td className="py-4 px-6"><div className="flex flex-col gap-1.5">{ord.product_name.split(' | ').map((item, idx) => (<div key={idx} className="text-[11px] text-[#6b523e] font-medium bg-[#fcfaf5] px-3 py-1.5 rounded-lg border border-[#e3d6c1] whitespace-nowrap md:whitespace-normal">{item}</div>))}</div></td>
                           <td className="py-4 px-6"><div className="font-black text-[#2e231b] text-sm">Rp {ord.total_price.toLocaleString("id-ID")}</div><div className="text-[10px] font-bold text-[#8a7a6c] uppercase mt-1">{ord.payment_method}</div></td>
@@ -1006,7 +1020,7 @@ export default function AdminDashboard() {
               <div className="flex justify-end"><button onClick={openAddExpenseModal} className="bg-[#d32f2f] hover:bg-[#b91c1c] text-white px-5 py-3 md:py-2.5 rounded-full font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-[#d32f2f]/20 transition-all w-full md:w-auto"><Plus size={16} /> Catat Pengeluaran</button></div>
               <div className="bg-white rounded-[20px] md:rounded-[30px] shadow-sm border border-[#e3d6c1] overflow-hidden w-full">
                 <div className="p-4 md:p-6 border-b border-[#f4f1ea] flex justify-between items-center bg-[#fcfaf5]/30"><h3 className="font-black text-[#2e231b] uppercase italic tracking-tighter text-sm md:text-base">Riwayat Pengeluaran Toko</h3></div>
-                <div className="overflow-x-auto"><table className="w-full text-left min-w-150"><thead className="bg-[#fcfaf5]"><tr className="text-[#8a7a6c] uppercase text-[10px] tracking-widest border-b border-[#f4f1ea]"><th className="py-4 px-6 font-bold">Tanggal</th><th className="py-4 px-6 font-bold">Deskripsi</th><th className="py-4 px-6 font-bold">Kategori</th><th className="py-4 px-6 font-bold">Nominal (Rp)</th><th className="py-4 px-6 font-bold text-right">Tindakan</th></tr></thead><tbody className="divide-y divide-[#f4f1ea]">{paginatedExpenses.length > 0 ? (paginatedExpenses.map((exp) => (<tr key={exp.id} className="hover:bg-[#fcfaf5]/50 transition-colors"><td className="py-4 px-6 font-bold text-xs text-[#8a7a6c]">{new Date(exp.expense_date).toLocaleDateString('id-ID')}</td><td className="py-4 px-6 font-bold text-sm text-[#2e231b]">{exp.description}</td><td className="py-4 px-6"><span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[#f4f1ea] text-[#6b523e] whitespace-nowrap">{exp.category}</span></td><td className="py-4 px-6 font-black text-sm text-[#d32f2f] whitespace-nowrap">- Rp {exp.amount.toLocaleString("id-ID")}</td><td className="py-4 px-6 text-right"><div className="flex justify-end gap-2"><button onClick={() => handleEditExpenseClick(exp)} className="p-2 text-[#4a3320] hover:bg-[#f4e9d8] rounded-lg transition-colors border border-transparent hover:border-[#e3d6c1]"><Edit size={16} /></button><button onClick={() => handleDeleteExpense(exp.id)} className="p-2 text-[#d32f2f] hover:bg-[#fff1f1] rounded-lg transition-colors border border-transparent hover:border-[#ffe4e4]"><Trash2 size={16} /></button></div></td></tr>))) : (<tr><td colSpan={5} className="py-10 text-center text-[#8a7a6c] font-bold text-sm">Belum ada catatan pengeluaran.</td></tr>)}</tbody></table></div>
+                <div className="overflow-x-auto"><table className="w-full text-left min-w-150"><thead className="bg-[#fcfaf5]"><tr className="text-[#8a7a6c] uppercase text-[10px] tracking-widest border-b border-[#f4f1ea]"><th className="py-4 px-6 font-bold">Tanggal</th><th className="py-4 px-6 font-bold">Deskripsi</th><th className="py-4 px-6 font-bold">Kategori</th><th className="py-4 px-6 font-bold">Nominal (Rp)</th><th className="py-4 px-6 font-bold text-right">Tindakan</th></tr></thead><tbody className="divide-y divide-[#f4f1ea]">{paginatedExpenses.length > 0 ? (paginatedExpenses.map((exp) => (<tr key={exp.id} className="hover:bg-[#fcfaf5]/50 transition-colors"><td className="py-4 px-6 font-bold text-xs text-[#8a7a6c]">{formatTanggal(exp.expense_date)}</td><td className="py-4 px-6 font-bold text-sm text-[#2e231b]">{exp.description}</td><td className="py-4 px-6"><span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[#f4f1ea] text-[#6b523e] whitespace-nowrap">{exp.category}</span></td><td className="py-4 px-6 font-black text-sm text-[#d32f2f] whitespace-nowrap">- Rp {exp.amount.toLocaleString("id-ID")}</td><td className="py-4 px-6 text-right"><div className="flex justify-end gap-2"><button onClick={() => handleEditExpenseClick(exp)} className="p-2 text-[#4a3320] hover:bg-[#f4e9d8] rounded-lg transition-colors border border-transparent hover:border-[#e3d6c1]"><Edit size={16} /></button><button onClick={() => handleDeleteExpense(exp.id)} className="p-2 text-[#d32f2f] hover:bg-[#fff1f1] rounded-lg transition-colors border border-transparent hover:border-[#ffe4e4]"><Trash2 size={16} /></button></div></td></tr>))) : (<tr><td colSpan={5} className="py-10 text-center text-[#8a7a6c] font-bold text-sm">Belum ada catatan pengeluaran.</td></tr>)}</tbody></table></div>
                 <div className="p-4 border-t border-[#f4f1ea] flex flex-col md:flex-row items-center justify-between gap-4 bg-[#fcfaf5]/50"><span className="text-xs font-bold text-[#8a7a6c]">Halaman {expensePage} dari {totalExpensePages || 1}</span><div className="flex gap-2"><button onClick={() => setExpensePage(p => Math.max(1, p - 1))} disabled={expensePage === 1} className="p-2 bg-white rounded-lg border border-[#e3d6c1] shadow-sm disabled:opacity-50 text-[#4a3320]"><ChevronLeft size={16} /></button><button onClick={() => setExpensePage(p => Math.min(totalOrderPages, p + 1))} disabled={expensePage === totalExpensePages || totalExpensePages === 0} className="p-2 bg-white rounded-lg border border-[#e3d6c1] shadow-sm disabled:opacity-50 text-[#4a3320]"><ChevronRight size={16} /></button></div></div>
               </div>
             </div>
